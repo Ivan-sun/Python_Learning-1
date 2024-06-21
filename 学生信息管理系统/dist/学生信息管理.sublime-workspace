@@ -1,0 +1,292 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"s_",
+				"s_list"
+			],
+			[
+				"s",
+				"s_list"
+			],
+			[
+				"va",
+				"value"
+			],
+			[
+				"b",
+				"books"
+			],
+			[
+				"ap",
+				"api"
+			],
+			[
+				"ma",
+				"maxrow"
+			],
+			[
+				"max",
+				"maxclo"
+			],
+			[
+				"x",
+				"xlapp"
+			]
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "/D/学习资料/Python 学习/文档/编程软件/EXCLE的行列.md",
+			"settings":
+			{
+				"buffer_size": 55,
+				"encoding": "UTF-8",
+				"line_ending": "Windows"
+			},
+			"undo_stack":
+			[
+			]
+		}
+	],
+	"build_system": "Packages/Python/Python.sublime-build",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"help",
+				"Help: Documentation"
+			],
+			[
+				"insta",
+				"Package Control: Install Package"
+			],
+			[
+				"remove",
+				"Package Control: Remove Package"
+			],
+			[
+				"remo",
+				"Package Control: Remove Package"
+			],
+			[
+				"install",
+				"Package Control: Install Package"
+			],
+			[
+				"Package Control: afile",
+				"Package Control: Create Package File"
+			],
+			[
+				"Package Control: ",
+				"Package Control: Install Package"
+			],
+			[
+				"Package Control: install",
+				"Package Control: Install Package"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/D/学习资料/Python 学习/学生信息管理系统/dist/student.txt",
+		"/C/Users/sun.zengchang/Desktop/Python 学习/学习xlwings6.py",
+		"/C/Users/sun.zengchang/Desktop/Python 学习/api实现打开文件框.py",
+		"/C/Users/sun.zengchang/Desktop/Python 学习/学习xlwings5.py",
+		"/C/Users/sun.zengchang/Desktop/Python 学习/xlwings实现多工作簿汇总.py",
+		"/C/Users/sun.zengchang/Desktop/Python 学习/xlwings读取数据转入到pd.py",
+		"/C/Users/sun.zengchang/Desktop/Python 学习/文档/编程软件/Python for Excel-xlwings.md",
+		"/D/Program Files/SublimeText_4149_64bit_Green/SublimeText/Data/Packages/User/SideBarEnhancements/Open With/Side Bar.sublime-menu",
+		"/C/Users/sun.zengchang/Desktop/Python 学习/文档/编程软件/EXCLE的行列.md",
+		"/C/Users/sun.zengchang/Desktop/Python 学习/表格/多工作表数据汇总.xlsx",
+		"/C/Windows/System32/drivers/etc/hosts",
+		"/C/Users/sun.zengchang/Desktop/学习/学习xlwings5.py",
+		"/C/Users/sun.zengchang/Desktop/学习/学习xlwings4.py",
+		"/C/Users/sun.zengchang/Desktop/学习/学习xlwings2.py",
+		"/C/Users/sun.zengchang/Desktop/学习/学习xlwings3.py",
+		"/C/Users/sun.zengchang/Desktop/学习/学习xlwings1.py",
+		"/C/Users/sun.zengchang/Desktop/学习/“轮值质量员”自查明细.xlsx",
+		"/C/Users/sun.zengchang/Desktop/学习/Python/《超简单：用Python让Excel飞起来》实例文件第1代/04/案例07 将一个工作簿的所有工作表批量复制到其他工作簿/将指定工作表的数据批量复制到其他工作簿的指定工作表中.py",
+		"/C/Users/sun.zengchang/Desktop/学习/测试sublime.py"
+	],
+	"find":
+	{
+		"height": 0.0
+	},
+	"find_in_files":
+	{
+		"height": 129.600006104,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"scrollbar_highlights": true,
+		"show_context": true,
+		"use_buffer2": true,
+		"use_gitignore": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "/D/学习资料/Python 学习/文档/编程软件/EXCLE的行列.md",
+					"selected": true,
+					"semi_transient": false,
+					"settings":
+					{
+						"buffer_size": 55,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								55,
+								55
+							]
+						],
+						"settings":
+						{
+							"origin_encoding": "UTF-8",
+							"syntax": "Packages/Markdown/Markdown.sublime-syntax"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"stack_index": 0,
+					"stack_multiselect": false,
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 0.0
+	},
+	"input":
+	{
+		"height": 50.4
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "Packages/Python/Python.sublime-build",
+	"project": "学生信息管理.sublime-project",
+	"replace":
+	{
+		"height": 0.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": true,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 277.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

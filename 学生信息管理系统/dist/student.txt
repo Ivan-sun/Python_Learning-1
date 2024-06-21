@@ -1,0 +1,9 @@
+{'id': '1001', 'name': 'she', 'English': '123', 'Python': '99', 'Java': '78'}
+{'id': '1002', 'name': 'sunzc', 'English': '123', 'Python': '98', 'Java': '78'}
+{'id': '123', 'name': 'ad', 'English': '123', 'Python': '45', 'Java': '68'}
+{'id': '1003', 'name': '照是', 'English': 89.0, 'Python': 34.6, 'Java': 123.0}
+{'id': '1005', 'name': '王周', 'English': 110.0, 'Python': 111.5, 'Java': 130.0}
+{'id': '1006', 'name': '李四', 'English': 129.0, 'Python': 110.0, 'Java': 98.9}
+{'id': '1004', 'name': 'sunss', 'English': 110.0, 'Python': 125.9, 'Java': 130.0}
+{'id': '1007', 'name': '周五', 'English': 111.0, 'Python': 134.0, 'Java': 130.0}
+{'id': 'jk', 'name': 'hll', 'English': 90.0, 'Python': 78.0, 'Java': 89.0}
