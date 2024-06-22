@@ -1,8 +1,12 @@
 import pandas as pd
+from datetime import datetime
+import numpy as np
 import tkinter as tk
 from tkinter import filedialog
 import xlwings as xw
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import PatternFill, Alignment, Font, Border, Side
+from tqdm import tqdm
 
 def select_excel_file():
     """选择Excel文件的对话框"""
@@ -48,6 +52,21 @@ def extract_merge_info(sheet, start_row, start_col):
             print(f"处理列 {col_letter} 时发生错误: {e}")
     return data
 
+def get_data_from_range(sheet, header_range, start_col_num, end_col_num):
+    start_col = xw.utils.col_name(start_col_num)
+    end_col = xw.utils.col_name(end_col_num)
+    headers = sheet.range(header_range).value
+    start_row = 10
+    last_row = sheet.cells.last_cell.row
+    end_row = sheet.range(f'{end_col}{last_row}').end('up').row
+    data_range = sheet.range(f'{start_col}{start_row}:{end_col}{end_row}')
+    data = data_range.value
+    df = pd.DataFrame(data, columns=headers[:len(data[0])])
+    df.dropna(how='all', inplace=True)
+    return df
+
+
+
 def main():
     try:
         # 选择文件
@@ -55,25 +74,40 @@ def main():
         if not file_path:
             print("没有选择文件。")
             return
-
-        # 打开Excel文件并激活工作表
-        wb = xw.Book(file_path)
-        sht1 = wb.sheets['Sheet1']
-
         # 提取合并单元格信息
         data_TS = extract_merge_info(sht1, 6, 'Z')
         data_Car = extract_merge_info(sht1, 8, 'Z')
-
         # 将信息转换为DataFrame
         df_TS_info = pd.DataFrame(data_TS)
         df_Car_info = pd.DataFrame(data_Car)
-
         # 去除重复行并筛选非空的'Merge_Context'
         # df_info = df_info.drop_duplicates().dropna(subset=['Merge_Context'])
-
         # 打印结果
         print(df_TS_info)
         print(df_Car_info)
+
+        with xw.Book(file_path) as wb:
+            sht1 = wb.sheets['Sheet1']
+            book_name = sht1.range('A1').value
+            sht1.range('O6').value = "制造分部\nMF"
+
+            current_date = datetime.now().strftime('%Y%m%d')
+
+            df1_1 = get_data_from_range(sht1, 'A6:S6', 1, 19)
+            df1_2 = get_data_from_range(sht1, 'W6:Y6', 23, 25)
+            df1_3 = get_data_from_range(sht1, 'T8:U8', 20, 21)
+            df1 = pd.concat([df1_1, df1_2, df1_3], axis=1)
+
+            columns_to_drop = ['工艺\nMET', '外控\nSQC', '采购\nPROC', '运维\nO&M', '项目\nPM', '工程\nENG',
+                            '售后质量', 'Engineer', '质量-外控', '售后质量', '采购', '运维', '项目', '工程']
+
+
+
+
+
+
+
+
 
         # 保存并关闭工作簿
         wb.save()
