@@ -61,16 +61,19 @@ def main():
         sht1 = wb.sheets['Sheet1']
 
         # 提取合并单元格信息
-        data = extract_merge_info(sht1, 6, 'Z')
+        data_TS = extract_merge_info(sht1, 6, 'Z')
+        data_Car = extract_merge_info(sht1, 8, 'Z')
 
         # 将信息转换为DataFrame
-        df_info = pd.DataFrame(data)
+        df_TS_info = pd.DataFrame(data_TS)
+        df_Car_info = pd.DataFrame(data_Car)
 
         # 去除重复行并筛选非空的'Merge_Context'
         # df_info = df_info.drop_duplicates().dropna(subset=['Merge_Context'])
 
         # 打印结果
-        print(df_info)
+        print(df_TS_info)
+        print(df_Car_info)
 
         # 保存并关闭工作簿
         wb.save()

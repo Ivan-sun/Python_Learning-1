@@ -34,7 +34,7 @@ def apply_format(cell, font_name='等线', font_size=14, font_color='FF0000', is
         alignment = Alignment(horizontal='center', vertical='center')
         cell.alignment = alignment
         
-# 添加遗漏的函数定义
+
 def get_data_from_range(sheet, header_range, start_col_num, end_col_num):
     start_col = xw.utils.col_name(start_col_num)
     end_col = xw.utils.col_name(end_col_num)
