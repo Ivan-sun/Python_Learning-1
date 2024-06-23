@@ -88,16 +88,16 @@ df1 = pd.concat([df1_1, df1_2,df1_3], axis=1)
 # 移除df1中不必要的列
 # 定义需要移除的列名列表
 columns_to_drop = ['工艺\nMET', '外控\nSQC', '内控\nQC','采购\nPROC', '运维\nO&M', '项目\nPM', '工程\nENG', 
-                       '售后质量', 'Engineer', '质量-外控', '售后质量', '采购', '运维', '项目', '工程']
+                       '售后质量', 'Engineer', '质量-外控','质量-内控','售后质量', '采购', '运维', '项目', '工程']
 # 移除指定的列
 df1.drop(columns=columns_to_drop, errors='ignore', inplace=True)
 
 
 # 获取当前日期并格式化为年月日形式
-current_date = datetime.now().strftime('%Y%m%d')
+current_date = datetime.now().strftime('%Y%m%d%h%%M')
 
 # 使用日期作为后缀创建新工作簿的名称
-excel_file_name = f"{book_name}_SingleCar_{current_date}.xlsx"
+excel_file_name = f"{book_name}_TS_{current_date}.xlsx"
 
 data_TS = extract_merge_info(sht1, 6, 'Z')
 data_Car = extract_merge_info(sht1, 8, 'Z')
@@ -109,16 +109,19 @@ print(df_TS_info)
 print(df_Car_info)
 #遍历 df_Car_info,修改列名，增加车辆编号
 for index, row in df_Car_info.iterrows():
-    start_address = row['Start_Address']
-    end_address = row['End_Address']
+    start_address = f"{get_column_letter(row['Start_Column'])}9"
+    end_address = f"{get_column_letter(row['End_Column'])}9"
     car_NO= row['Merge_Context']
     for i in sht1.range(f"{start_address}: {end_address}"):
-        sht1.range(i).value = f"{car_NO}\n{sht1.range(i).value}"
+        # 判断range(i).value的值是否已经包含car_NO
+        if car_NO not in i.value:
+            sht1.range(i).value = f"{car_NO}\n{sht1.range(i).value}"
+
 
 
 
 total_sheets = len(df_TS_info)
-with tqdm(total=total_sheets, desc="Writing Sheets", unit="sheets") as sheets_pbar:
+with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_pbar:
 
     try:
         with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
@@ -146,8 +149,24 @@ with tqdm(total=total_sheets, desc="Writing Sheets", unit="sheets") as sheets_pb
                 
 
                 merged_df = pd.concat([df1.reset_index(drop=True), df_i.reset_index(drop=True)], axis=1)
+                #把列名中包含 '售后质量', 'Engineer', '质量-外控', '售后质量', '采购', '运维', '项目', '工程' 的列清除
+                columns_to_remove = [col for col in merged_df.columns if any(substring in col for substring in columns_to_drop)]
+                merged_df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
+
+                # 计算不含标题的实际数据行数，并命名变量为 sum_CN（表示该项目所有的变更总数）
+                sum_CN = merged_df.shape[0] - 1
                 
-                merged_df.to_excel(writer, sheet_name=f"{merge_context}", index=False)
+
+                # 筛选条件：筛选出“列汇总”中含有“未完成”的行，并命名变量为 df_OPEN（表示该项目的未完成变更）
+                df_OPEN = merged_df[merged_df['列汇总'].str.contains('未完成')]
+          
+
+
+
+
+
+
+                df_OPEN.to_excel(writer, sheet_name=f"{merge_context}", index=False)
 
 
                 
@@ -163,7 +182,10 @@ with tqdm(total=total_sheets, desc="Writing Sheets", unit="sheets") as sheets_pb
              print("错误：至少需要一个可见的工作表。请检查是否意外隐藏了工作表。")
         else:
                 raise e
-             
 
+
+# 关闭原工作簿，根据需要可取消注释
+wb.save()
+wb.app.quit()
 
             

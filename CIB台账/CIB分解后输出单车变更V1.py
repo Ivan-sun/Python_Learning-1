@@ -24,6 +24,9 @@ note ="""
 print (note)
 ss = input("====确认后，按任意键加回车继续====\n")
 
+print("====请选择需要处理的CIB台账====")
+
+
 
 
 # 定义文件路径和工作表名称
@@ -133,9 +136,11 @@ with tqdm(total=total_sheets, desc="Writing Sheets", unit="sheets") as sheets_pb
                 
                  # 定义需要移除的列名列表
                 columns_to_drop = ['工艺\nMET', '外控\nSQC', '采购\nPROC', '运维\nO&M', '项目\nPM', '工程\nENG', 
-                       '售后质量', 'Engineer', '质量-外控', '售后质量', '采购', '运维', '项目', '工程']
+                       '售后质量', 'Engineer', '质量-外控','质量-内控', '售后质量', '采购', '运维', '项目', '工程']
                 # 移除指定的列
-                merged_df.drop(columns=columns_to_drop, errors='ignore', inplace=True)
+                # merged_df.drop(columns=columns_to_drop, errors='ignore', inplace=True)
+                columns_to_remove = [col for col in merged_df.columns if any(substring in col for substring in columns_to_drop)]
+                merged_df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
 
                 # 计算不含标题的实际数据行数，并命名变量为 sum_CN（表示该项目所有的变更总数）
                 sum_CN = merged_df.shape[0] - 1
@@ -185,7 +190,7 @@ with tqdm(total=total_sheets, desc="Writing Sheets", unit="sheets") as sheets_pb
 
                 # 创建自定义的填充样式
                 fill = PatternFill(start_color="ADD8E6",  # 浅蓝色的RGB代码
-                                   end_color="ADD8E6",
+                                    end_color="ADD8E6",
                                    fill_type="solid")
                 
                 # 设置字体为黑体
