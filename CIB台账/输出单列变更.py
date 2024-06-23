@@ -152,7 +152,9 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
                 #把列名中包含 '售后质量', 'Engineer', '质量-外控', '售后质量', '采购', '运维', '项目', '工程' 的列清除
                 columns_to_remove = [col for col in merged_df.columns if any(substring in col for substring in columns_to_drop)]
                 merged_df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
-
+                
+                #将["列汇总"]这种的空值行清除
+                merged_df = merged_df.dropna(subset=["列汇总"])
                 # 计算不含标题的实际数据行数，并命名变量为 sum_CN（表示该项目所有的变更总数）
                 sum_CN = merged_df.shape[0] - 1
                 
