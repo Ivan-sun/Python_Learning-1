@@ -113,7 +113,7 @@ for index, row in df_Car_info.iterrows():
     end_address = row['End_Address']
     car_NO= row['Merge_Context']
     for i in sht1.range(f"{start_address}: {end_address}"):
-        sht1.range(i).value = f"{car_NO}\n{sht1.range(i.address).value}"
+        sht1.range(i).value = f"{car_NO}\n{sht1.range(i).value}"
 
 
 
