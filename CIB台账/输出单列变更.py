@@ -66,11 +66,38 @@ def extract_merge_info(sheet, start_row, start_col):
             print(f"处理列 {col_letter} 时发生错误: {e}")
     return data
 
+note ="""
+    ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+                                    使用前注意事项
+    0.本程序支持对Office Excel文件格式的变更处理,将变更汇总表按单列进行拆分
+
+    1.被处理的CIB台帐请确保是从QMIS系统中自动导出的台账格式！
+
+    2.本程序支持主要依据CIB导出的台账进行案列拆分，拆分后对未完成的变更的台账会自动保存到当前目录下
+    
+    3.如果拆分后发现在同一时间进行两次及以上，使用时会出现报错，等待一分钟后重新运行即可
+
+    4.本程序运行中会对原文件中标题内容有部分改动，未对数据进行修改
+    
+    5.程序运行中会弹出一个窗口，请勿关闭窗口，否则会报错，运行时间取决于项目车辆数量，如果项目车辆数量较多，请耐心等待
+
+    6.本程序为V1.0版本，后续版本会更新，敬请关注
+
+    ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  
+    """
+print (note)
+ss = input("====确认后，按任意键加回车继续====\n")
+
+print("====请选择需要处理的CIB台账====")
+
 
 # 选择文件
 file_path = select_excel_file()
 if not file_path:
     print("没有选择文件。")
+
+
+
 sheet_name = 'Sheet1'
 
 # 打开Excel文件并激活工作表
@@ -87,18 +114,19 @@ df1 = pd.concat([df1_1, df1_2,df1_3], axis=1)
 
 # 移除df1中不必要的列
 # 定义需要移除的列名列表
-columns_to_drop = ['工艺\nMET', '外控\nSQC', '内控\nQC','采购\nPROC', '运维\nO&M', '项目\nPM', '工程\nENG', 
-                       '售后质量', 'Engineer', '质量-外控','质量-内控','售后质量', '采购', '运维', '项目', '工程']
+columns_to_drop = ['工艺\nMET', '变更通知编号\nMCN','外控\nSQC', '内控\nQC','采购\nPROC', '运维\nO&M', '项目\nPM', '工程\nENG', 
+                       '售后质量', '基线范围\nScope of influence','供应商整改范围\nScope of Supplier','Engineer', '质量-外控','质量-内控','售后质量', '运维', '项目', '工程']
 # 移除指定的列
 df1.drop(columns=columns_to_drop, errors='ignore', inplace=True)
 
 
 # 获取当前日期并格式化为年月日形式
-current_date = datetime.now().strftime('%Y%m%d%h%%M')
+current_date = datetime.now().strftime('%Y%m%d %H:%M')
 
 # 使用日期作为后缀创建新工作簿的名称
 excel_file_name = f"{book_name}_TS_{current_date}.xlsx"
 
+print("开始读取数据。。。")
 data_TS = extract_merge_info(sht1, 6, 'Z')
 data_Car = extract_merge_info(sht1, 8, 'Z')
 
@@ -108,6 +136,7 @@ df_Car_info = pd.DataFrame(data_Car) #提取Car信息,单个车的合并单元�
 print(df_TS_info)
 print(df_Car_info)
 #遍历 df_Car_info,修改列名，增加车辆编号
+
 for index, row in df_Car_info.iterrows():
     start_address = f"{get_column_letter(row['Start_Column'])}9"
     end_address = f"{get_column_letter(row['End_Column'])}9"
@@ -153,7 +182,10 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
                 columns_to_remove = [col for col in merged_df.columns if any(substring in col for substring in columns_to_drop)]
                 merged_df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
                 
+                # print(merged_df.columns)
+                
                 #将["列汇总"]这种的空值行清除
+                
                 merged_df = merged_df.dropna(subset=["列汇总"])
                 # 计算不含标题的实际数据行数，并命名变量为 sum_CN（表示该项目所有的变更总数）
                 sum_CN = merged_df.shape[0] - 1
@@ -162,11 +194,6 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
                 # 筛选条件：筛选出“列汇总”中含有“未完成”的行，并命名变量为 df_OPEN（表示该项目的未完成变更）
                 df_OPEN = merged_df[merged_df['列汇总'].str.contains('未完成')]
           
-
-
-
-
-
 
                 df_OPEN.to_excel(writer, sheet_name=f"{merge_context}", index=False)
 
@@ -185,7 +212,7 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
         else:
                 raise e
 
-
+print(f"数据已成功写入到 {excel_file_name}")
 # 关闭原工作簿，根据需要可取消注释
 wb.save()
 wb.app.quit()
