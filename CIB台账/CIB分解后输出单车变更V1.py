@@ -143,7 +143,7 @@ with tqdm(total=total_sheets, desc="Writing Sheets", unit="sheets") as sheets_pb
                 merged_df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
 
                 # 计算不含标题的实际数据行数，并命名变量为 sum_CN（表示该项目所有的变更总数）
-                sum_CN = merged_df.shape[0] - 1
+                sum_CN = merged_df.shape[0]
                 
 
                 # 筛选条件：删除'车间\nMF'、'外协\nOT'、'制造分部\nMF'列中全部都为“/”的行
@@ -194,7 +194,7 @@ with tqdm(total=total_sheets, desc="Writing Sheets", unit="sheets") as sheets_pb
                                    fill_type="solid")
                 
                 # 设置字体为黑体
-                font = Font(name='黑体', bold=True, size=14)  # 注意：'SimHei'一般用于中文黑体，英文环境下可能需要其他字体名称
+                font = Font(name='SimHei', bold=True, size=14)  # 注意：'SimHei'一般用于中文黑体，英文环境下可能需要其他字体名称
                 
                 # 设置单元格内容居中
                 alignment = Alignment(horizontal="center", vertical="center")

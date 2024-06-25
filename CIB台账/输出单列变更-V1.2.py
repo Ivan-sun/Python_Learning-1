@@ -1,10 +1,14 @@
+# -*- coding: utf-8 -*-
+
 import pandas as pd
 from datetime import datetime
 import numpy as np
 import tkinter as tk
 from tkinter import filedialog
 import xlwings as xw
+import openpyxl
 from openpyxl.utils import get_column_letter
+from openpyxl.styles import PatternFill, Alignment, Font,Border,Side
 from tqdm import tqdm
 
 def select_excel_file():
@@ -66,31 +70,46 @@ def extract_merge_info(sheet, start_row, start_col):
             print(f"处理列 {col_letter} 时发生错误: {e}")
     return data
 
-note ="""
-    ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
-                                    使用前注意事项
-    0.本程序支持对Office Excel文件格式的变更处理,将变更汇总表按单列进行拆分
+def apply_format(cell, font_name='等线', font_size=14, font_color='FF0000', is_bold=True, border=True, align_center=True):
+    """应用格式到单元格"""
+    font = Font(name=font_name, color=font_color, bold=is_bold, size=font_size)
+    cell.font = font
+    if border:
+        thin_border = Border(left=Side(style='thin'), 
+                            right=Side(style='thin'), 
+                            top=Side(style='thin'), 
+                            bottom=Side(style='thin'))
+        cell.border = thin_border
+    if align_center:
+        alignment = Alignment(horizontal='center', vertical='center')
+        cell.alignment = alignment
 
-    1.被处理的CIB台帐请确保是从QMIS系统中自动导出的台账格式！，并且清除所有筛选条件
 
-    2.本程序支持主要依据CIB导出的台账进行案列拆分，拆分后对未完成的变更的台账会自动保存到当前目录下
+# note ="""
+#     ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄
+#                                     使用前注意事项
+#     0.本程序支持对Office Excel文件格式的变更处理,将变更汇总表按单列进行拆分
+
+#     1.被处理的CIB台帐请确保是从QMIS系统中自动导出的台账格式！，并且清除所有筛选条件
+
+#     2.本程序支持主要依据CIB导出的台账进行案列拆分，拆分后对未完成的变更的台账会自动保存到当前目录下
     
-    3.如果拆分后发现在同一时间进行两次及以上，使用时会出现报错，等待一分钟后重新运行即可
+#     3.如果拆分后发现在同一时间进行两次及以上，使用时会出现报错，等待一分钟后重新运行即可
 
-    4.本程序运行中会对原文件中标题内容有部分改动，未对数据进行修改
+#     4.本程序运行中会对原文件中标题内容有部分改动，未对数据进行修改
     
-    5.程序运行中会弹出一个窗口，请勿关闭窗口，否则会报错，运行时间取决于项目车辆数量，如果项目车辆数量较多，请耐心等待
+#     5.程序运行中会弹出一个窗口，请勿关闭窗口，否则会报错，运行时间取决于项目车辆数量，如果项目车辆数量较多，请耐心等待
 
-    6.本程序为V1.1版本，后续版本会更新，敬请关注
+#     6.本程序为V1.1版本，后续版本会更新，敬请关注
 
-    7.V1.1 修改说明：显示变更MCN，隐藏变更ECN列
+#     7.V1.1 修改说明：显示变更MCN，隐藏变更ECN列
 
-    ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  
-    """
-print (note)
-ss = input("====确认后，按任意键加回车继续====\n")
+#     ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  
+#     """
+# print (note)
+# ss = input("====确认后，按任意键加回车继续====\n")
 
-print("====请选择需要处理的CIB台账====")
+# print("====请选择需要处理的CIB台账====")
 
 
 # 选择文件
@@ -186,22 +205,75 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
                 
                 # print(merged_df.columns)
                 
-                #将["列汇总"]这种的空值行清除
-                
+                #将["列汇总"]这种的空值行清除                
                 merged_df = merged_df.dropna(subset=["列汇总"])
+
                 # 计算不含标题的实际数据行数，并命名变量为 sum_CN（表示该项目所有的变更总数）
-                sum_CN = merged_df.shape[0] - 1
+                sum_CN = merged_df.shape[0]
                 
 
                 # 筛选条件：筛选出“列汇总”中含有“未完成”的行，并命名变量为 df_OPEN（表示该项目的未完成变更）
                 df_OPEN = merged_df[merged_df['列汇总'].str.contains('未完成')]
+                sum_OPEN = df_OPEN.shape[0]
           
 
-                df_OPEN.to_excel(writer, sheet_name=f"{merge_context}", index=False)
+                merged_df.to_excel(writer, sheet_name=f"{merge_context}", startrow=2, startcol=0, index=False)
+                            
+                activesheet = writer.sheets[f"{merge_context}"]
 
+                # 合并单元格
+                activesheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=activesheet.max_column)
+
+                # 设置合并单元格的值
+                activesheet.cell(row=1, column=1).value = f"{merge_context}车辆变更状态"
+                activesheet.cell(row=2, column=1).value = "变更总数："
+                activesheet.cell(row=2, column=2).value = sum_CN
+                activesheet.cell(row=2, column=3).value = "未关闭变更数："
+                activesheet.cell(row=2, column=4).value = sum_OPEN
+                activesheet.cell(row=2, column=5).value = "车间未关闭："
+                # activesheet.cell(row=2,column=6).value = sum_MF_OPEN_CN
+
+
+
+                #调整列宽
+                activesheet.column_dimensions['B'].width = 15
+                activesheet.column_dimensions['C'].width = 20
+
+
+
+                # 创建自定义的填充样式
+                fill = PatternFill(start_color="ADD8E6",  # 浅蓝色的RGB代码
+                                    end_color="ADD8E6",
+                                   fill_type="solid")
+                
+                # 设置字体为黑体
+                font = Font(name='黑体', bold=True, size=14)  # 注意：'SimHei'一般用于中文黑体，英文环境下可能需要其他字体名称
+                
+                # 设置单元格内容居中
+                alignment = Alignment(horizontal="center", vertical="center")
+
+                # 应用样式
+                activesheet.cell(row=1, column=1).fill = fill
+                activesheet.cell(row=1, column=1).font = font
+                activesheet.cell(row=1, column=1).alignment = alignment
+
+                # 应用格式到指定的单元格
+                apply_format(activesheet.cell(row=1, column=1), font_size=16)  # 标题行可能需要更大字体
+                apply_format(activesheet.cell(row=2, column=1))
+                apply_format(activesheet.cell(row=2, column=2))
+                apply_format(activesheet.cell(row=2, column=3))
+                apply_format(activesheet.cell(row=2, column=4))
+                apply_format(activesheet.cell(row=2, column=5))
+                apply_format(activesheet.cell(row=2, column=6))
+
+                # 设置第3行为标题行，并开启自动换行
+                for col in activesheet.iter_cols(min_col=1, max_col=activesheet.max_column, min_row=3, max_row=3):
+                    for cell in col:
+                        cell.style = 'Headline 4'  # 这里使用了预定义的样式'Headline 4'，你可以根据需要选择或自定义样式
+                        cell.alignment = openpyxl.styles.Alignment(wrap_text=True)  # 启用自动换行
 
                 
-                # activesheet = writer.sheets[f"{merge_context}"]
+                
 
                 
                 
