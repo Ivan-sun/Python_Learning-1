@@ -121,20 +121,20 @@ df1.drop(columns=columns_to_drop, errors='ignore', inplace=True)
 
 
 # 获取当前日期并格式化为年月日形式
-current_date = datetime.now().strftime('%Y%m%d %H:%M')
+current_date = datetime.now().strftime('%Y%m%d %H-%M')
 
 # 使用日期作为后缀创建新工作簿的名称
 excel_file_name = f"{book_name}_TS_{current_date}.xlsx"
 
-print("开始读取数据。。。")
+print("开始读取数据,不要关闭工作表，请耐心等待。。。")
 data_TS = extract_merge_info(sht1, 6, 'Z')
 data_Car = extract_merge_info(sht1, 8, 'Z')
 
 df_TS_info = pd.DataFrame(data_TS)  # 提取TS信息,车辆列的合并单元格信息
 df_Car_info = pd.DataFrame(data_Car) #提取Car信息,单个车的合并单元格信息
 
-print(df_TS_info)
-print(df_Car_info)
+# print(df_TS_info)
+# print(df_Car_info)
 #遍历 df_Car_info,修改列名，增加车辆编号
 
 for index, row in df_Car_info.iterrows():
