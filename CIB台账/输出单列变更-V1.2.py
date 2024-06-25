@@ -173,118 +173,125 @@ for index, row in df_Car_info.iterrows():
 total_sheets = len(df_TS_info)
 with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_pbar:
 
-    try:
-        with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
-            #遍历每列车工作表，并进行写入
-            for index, row in df_TS_info.iterrows():
-                start_col_num = int(row['Start_Column'])
-                end_col_num = int(row['End_Column'])
-                merge_context = row['Merge_Context']
-                header_range = f"{get_column_letter(start_col_num)}9:{get_column_letter(end_col_num)}9"
-
-                df_i = get_data_from_range(sht1, header_range, start_col_num, end_col_num)
-                #获取df_i 标题，最后一个值为空值，需要进行修改，内容为 单元格({get_column_letter(end_col_num)}7)的值
-                  # 打印df_i的标题（假设df_i的列名为其标题）
-                # print("Current Headers of df_i:")
-                # print(df_i.columns)
-
-
-                last_header = df_i.columns[-1]
-                if pd.isnull(last_header):  # 检查是否为空值
-                    new_header = sht1.range(f"{get_column_letter(end_col_num)}7").value
-                    df_i.rename(columns={last_header: new_header}, inplace=True)  # 修改列名
-                    # print(f"Modified the last header to: {new_header}")
-                else:
-                    print("The last header was not empty, no modification needed.")
-                
-
-                merged_df = pd.concat([df1.reset_index(drop=True), df_i.reset_index(drop=True)], axis=1)
-                #把列名中包含 '售后质量', 'Engineer', '质量-外控', '售后质量', '采购', '运维', '项目', '工程' 的列清除
-                columns_to_remove = [col for col in merged_df.columns if any(substring in col for substring in columns_to_drop)]
-                merged_df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
-                
-                # print(merged_df.columns)
-                
-                #将["列汇总"]这种的空值行清除                
-                merged_df = merged_df.dropna(subset=["列汇总"])
-
-                # 计算不含标题的实际数据行数，并命名变量为 sum_CN（表示该项目所有的变更总数）
-                sum_CN = merged_df.shape[0]
-                
-
-                # 筛选条件：筛选出“列汇总”中含有“未完成”的行，并命名变量为 df_OPEN（表示该项目的未完成变更）
-                df_OPEN = merged_df[merged_df['列汇总'].str.contains('未完成')]
-                sum_OPEN = df_OPEN.shape[0]
-          
-
-                merged_df.to_excel(writer, sheet_name=f"{merge_context}", startrow=2, startcol=0, index=False)
-                            
-                activesheet = writer.sheets[f"{merge_context}"]
-
-                # 合并单元格
-                activesheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=activesheet.max_column)
-
-                # 设置合并单元格的值
-                activesheet.cell(row=1, column=1).value = f"{merge_context}车辆变更状态"
-                activesheet.cell(row=2, column=1).value = "变更总数："
-                activesheet.cell(row=2, column=2).value = sum_CN
-                activesheet.cell(row=2, column=3).value = "未关闭变更数："
-                activesheet.cell(row=2, column=4).value = sum_OPEN
-                activesheet.cell(row=2, column=5).value = "车间未关闭："
-                # activesheet.cell(row=2,column=6).value = sum_MF_OPEN_CN
-
-
-
-                #调整列宽
-                activesheet.column_dimensions['B'].width = 15
-                activesheet.column_dimensions['C'].width = 20
-
-
-
-                # 创建自定义的填充样式
-                fill = PatternFill(start_color="ADD8E6",  # 浅蓝色的RGB代码
-                                    end_color="ADD8E6",
-                                   fill_type="solid")
-                
-                # 设置字体为黑体
-                font = Font(name='黑体', bold=True, size=14)  # 注意：'SimHei'一般用于中文黑体，英文环境下可能需要其他字体名称
-                
-                # 设置单元格内容居中
-                alignment = Alignment(horizontal="center", vertical="center")
-
-                # 应用样式
-                activesheet.cell(row=1, column=1).fill = fill
-                activesheet.cell(row=1, column=1).font = font
-                activesheet.cell(row=1, column=1).alignment = alignment
-
-                # 应用格式到指定的单元格
-                apply_format(activesheet.cell(row=1, column=1), font_size=16)  # 标题行可能需要更大字体
-                apply_format(activesheet.cell(row=2, column=1))
-                apply_format(activesheet.cell(row=2, column=2))
-                apply_format(activesheet.cell(row=2, column=3))
-                apply_format(activesheet.cell(row=2, column=4))
-                apply_format(activesheet.cell(row=2, column=5))
-                apply_format(activesheet.cell(row=2, column=6))
-
-                # 设置第3行为标题行，并开启自动换行
-                for col in activesheet.iter_cols(min_col=1, max_col=activesheet.max_column, min_row=3, max_row=3):
-                    for cell in col:
-                        cell.style = 'Headline 4'  # 这里使用了预定义的样式'Headline 4'，你可以根据需要选择或自定义样式
-                        cell.alignment = openpyxl.styles.Alignment(wrap_text=True)  # 启用自动换行
-
-                
-                
-
-                
-                
-                
-                sheets_pbar.update(1)
     
-    except Exception as e:
-        if "at least one sheet must be visible" in str(e):
-             print("错误：至少需要一个可见的工作表。请检查是否意外隐藏了工作表。")
-        else:
-                raise e
+    with pd.ExcelWriter(excel_file_name, engine='openpyxl') as writer:
+        #遍历每列车工作表，并进行写入
+        for index, row in df_TS_info.iterrows():
+            start_col_num = int(row['Start_Column'])
+            end_col_num = int(row['End_Column'])
+            merge_context = row['Merge_Context']
+            header_range = f"{get_column_letter(start_col_num)}9:{get_column_letter(end_col_num)}9"
+
+            df_i = get_data_from_range(sht1, header_range, start_col_num, end_col_num)
+            #获取df_i 标题，最后一个值为空值，需要进行修改，内容为 单元格({get_column_letter(end_col_num)}7)的值
+                # 打印df_i的标题（假设df_i的列名为其标题）
+            # print("Current Headers of df_i:")
+            # print(df_i.columns)
+
+
+            last_header = df_i.columns[-1]
+            if pd.isnull(last_header):  # 检查是否为空值
+                new_header = sht1.range(f"{get_column_letter(end_col_num)}7").value
+                df_i.rename(columns={last_header: new_header}, inplace=True)  # 修改列名
+                # print(f"Modified the last header to: {new_header}")
+            else:
+                print("The last header was not empty, no modification needed.")
+            
+
+            merged_df = pd.concat([df1.reset_index(drop=True), df_i.reset_index(drop=True)], axis=1)
+            #把列名中包含 '售后质量', 'Engineer', '质量-外控', '售后质量', '采购', '运维', '项目', '工程' 的列清除
+            columns_to_remove = [col for col in merged_df.columns if any(substring in col for substring in columns_to_drop)]
+            merged_df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
+            
+            # print(merged_df.columns)
+            
+            #将["列汇总"]这种的空值行清除                
+            merged_df = merged_df.dropna(subset=["列汇总"])
+
+            # 计算不含标题的实际数据行数，并命名变量为 sum_CN（表示该项目所有的变更总数）
+            sum_CN = merged_df.shape[0]
+            
+
+            # 筛选条件：筛选出“列汇总”中含有“未完成”的行，并命名变量为 df_OPEN（表示该项目的未完成变更）
+            df_OPEN = merged_df[merged_df['列汇总'].str.contains('未完成')]
+            sum_OPEN = df_OPEN.shape[0]
+        
+
+            merged_df.to_excel(writer, sheet_name=f"{merge_context}", startrow=2, startcol=0, index=False)
+                        
+            activesheet = writer.sheets[f"{merge_context}"]
+
+            # 合并单元格
+            activesheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=activesheet.max_column)
+
+            # 设置合并单元格的值
+            activesheet.cell(row=1, column=1).value = f"{merge_context}车辆变更状态"
+            activesheet.cell(row=2, column=1).value = "变更总数："
+            activesheet.cell(row=2, column=2).value = sum_CN
+            activesheet.cell(row=2, column=3).value = "未关闭变更数："
+            activesheet.cell(row=2, column=4).value = sum_OPEN
+            activesheet.cell(row=2, column=5).value = "车间未关闭："
+            # activesheet.cell(row=2,column=6).value = sum_MF_OPEN_CN
+
+
+
+            #调整列宽
+            activesheet.column_dimensions['B'].width = 15
+            activesheet.column_dimensions['C'].width = 20
+
+
+
+            # 创建自定义的填充样式
+            fill = PatternFill(start_color="ADD8E6",  # 浅蓝色的RGB代码
+                                end_color="ADD8E6",
+                                fill_type="solid")
+            
+            # 设置字体为黑体
+            font = Font(name='黑体', bold=True, size=14)  # 注意：'SimHei'一般用于中文黑体，英文环境下可能需要其他字体名称
+            
+            # 设置单元格内容居中
+            alignment = Alignment(horizontal="center", vertical="center")
+
+            # 应用样式
+            activesheet.cell(row=1, column=1).fill = fill
+            activesheet.cell(row=1, column=1).font = font
+            activesheet.cell(row=1, column=1).alignment = alignment
+
+            # 应用格式到指定的单元格
+            apply_format(activesheet.cell(row=1, column=1), font_size=16)  # 标题行可能需要更大字体
+            apply_format(activesheet.cell(row=2, column=1))
+            apply_format(activesheet.cell(row=2, column=2))
+            apply_format(activesheet.cell(row=2, column=3))
+            apply_format(activesheet.cell(row=2, column=4))
+            apply_format(activesheet.cell(row=2, column=5))
+            apply_format(activesheet.cell(row=2, column=6))
+
+            # 设置第3行为标题行，并开启自动换行
+            for col in activesheet.iter_cols(min_col=1, max_col=activesheet.max_column, min_row=3, max_row=3):
+                for cell in col:
+                    cell.style = 'Headline 4'  # 这里使用了预定义的样式'Headline 4'，你可以根据需要选择或自定义样式
+                    cell.alignment = openpyxl.styles.Alignment(wrap_text=True)  # 启用自动换行
+
+            # 确定数据起始行和结束行，以及列范围
+            start_row = 3  # 数据起始行
+            end_row = activesheet.max_row  # 数据结束行（假设数据连续到最后一行）
+            column_letters = 'D'  # 假设数据从D列开始
+            end_column = get_column_letter(activesheet.max_column)  # 获取最大列字母
+
+            # 设置筛选范围，从第三行开始到工作表的最后一行和列
+            data_range = f"{column_letters}{start_row}:{end_column}{end_row}"
+
+            # 启用筛选
+            activesheet.auto_filter.ref = data_range
+
+            
+
+            
+            
+            
+            sheets_pbar.update(1)
+    
+
 
 print(f"数据已成功写入到 {excel_file_name}")
 # 关闭原工作簿，根据需要可取消注释
