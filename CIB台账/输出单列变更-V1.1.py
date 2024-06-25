@@ -71,7 +71,7 @@ note ="""
                                     使用前注意事项
     0.本程序支持对Office Excel文件格式的变更处理,将变更汇总表按单列进行拆分
 
-    1.被处理的CIB台帐请确保是从QMIS系统中自动导出的台账格式！
+    1.被处理的CIB台帐请确保是从QMIS系统中自动导出的台账格式！，并且清除所有筛选条件
 
     2.本程序支持主要依据CIB导出的台账进行案列拆分，拆分后对未完成的变更的台账会自动保存到当前目录下
     
@@ -81,7 +81,9 @@ note ="""
     
     5.程序运行中会弹出一个窗口，请勿关闭窗口，否则会报错，运行时间取决于项目车辆数量，如果项目车辆数量较多，请耐心等待
 
-    6.本程序为V1.0版本，后续版本会更新，敬请关注
+    6.本程序为V1.1版本，后续版本会更新，敬请关注
+
+    7.V1.1 修改说明：显示变更MCN，隐藏变更ECN列
 
     ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  
     """
@@ -114,7 +116,7 @@ df1 = pd.concat([df1_1, df1_2,df1_3], axis=1)
 
 # 移除df1中不必要的列
 # 定义需要移除的列名列表
-columns_to_drop = ['工艺\nMET', '变更通知编号\nMCN','外控\nSQC', '内控\nQC','采购\nPROC', '运维\nO&M', '项目\nPM', '工程\nENG', 
+columns_to_drop = ['工艺\nMET', '变更通知编号\nECN','外控\nSQC', '内控\nQC','采购\nPROC', '运维\nO&M', '项目\nPM', '工程\nENG', 
                        '售后质量', '基线范围\nScope of influence','供应商整改范围\nScope of Supplier','Engineer', '质量-外控','质量-内控','售后质量', '运维', '项目', '工程']
 # 移除指定的列
 df1.drop(columns=columns_to_drop, errors='ignore', inplace=True)
@@ -182,7 +184,7 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
                 columns_to_remove = [col for col in merged_df.columns if any(substring in col for substring in columns_to_drop)]
                 merged_df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
                 
-                # print(merged_df.columns)
+                print(merged_df.columns)
                 
                 #将["列汇总"]这种的空值行清除
                 
