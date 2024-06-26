@@ -216,9 +216,10 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
             df_OPEN = merged_df[merged_df['列汇总'].str.contains('未完成')]
             sum_OPEN = df_OPEN.shape[0]
         
+            
+            df_OPEN.to_excel(writer, sheet_name=f"{merge_context}", startrow=2, startcol=0, index=False)
 
-            merged_df.to_excel(writer, sheet_name=f"{merge_context}", startrow=2, startcol=0, index=False)
-                        
+
             activesheet = writer.sheets[f"{merge_context}"]
 
             # 合并单元格
@@ -226,17 +227,17 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
 
             # 设置合并单元格的值
             activesheet.cell(row=1, column=1).value = f"{merge_context}车辆变更状态"
-            activesheet.cell(row=2, column=1).value = "变更总数："
-            activesheet.cell(row=2, column=2).value = sum_CN
-            activesheet.cell(row=2, column=3).value = "未关闭变更数："
-            activesheet.cell(row=2, column=4).value = sum_OPEN
-            activesheet.cell(row=2, column=5).value = "车间未关闭："
+            activesheet.cell(row=2, column=2).value = "变更总数"
+            activesheet.cell(row=2, column=3).value = sum_CN
+            activesheet.cell(row=2, column=4).value = "未关闭"
+            activesheet.cell(row=2, column=5).value = sum_OPEN
+            activesheet.cell(row=2, column=6).value = "车间"
             # activesheet.cell(row=2,column=6).value = sum_MF_OPEN_CN
 
 
 
             #调整列宽
-            activesheet.column_dimensions['B'].width = 15
+            activesheet.column_dimensions['B'].width = 16
             activesheet.column_dimensions['C'].width = 20
 
 
@@ -259,19 +260,24 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
 
             # 应用格式到指定的单元格
             apply_format(activesheet.cell(row=1, column=1), font_size=16)  # 标题行可能需要更大字体
-            apply_format(activesheet.cell(row=2, column=1))
             apply_format(activesheet.cell(row=2, column=2))
             apply_format(activesheet.cell(row=2, column=3))
             apply_format(activesheet.cell(row=2, column=4))
             apply_format(activesheet.cell(row=2, column=5))
             apply_format(activesheet.cell(row=2, column=6))
+            apply_format(activesheet.cell(row=2, column=7))
+
+
 
             # 设置第3行为标题行，并开启自动换行
             for col in activesheet.iter_cols(min_col=1, max_col=activesheet.max_column, min_row=3, max_row=3):
                 for cell in col:
-                    cell.style = 'Headline 4'  # 这里使用了预定义的样式'Headline 4'，你可以根据需要选择或自定义样式
-                    cell.alignment = openpyxl.styles.Alignment(wrap_text=True)  # 启用自动换行
+                    cell.font = Font(name='等线', size=11, bold=True)
+                    cell.alignment = Alignment(wrapText=True, vertical='center', horizontal='center')
+                    # cell.alignment = openpyxl.styles.Alignment(wrap_text=True)  # 启用自动换行
 
+            # 调整第三行的行高
+            activesheet.row_dimensions[3].height = 36
             # 确定数据起始行和结束行，以及列范围
             start_row = 3  # 数据起始行
             end_row = activesheet.max_row  # 数据结束行（假设数据连续到最后一行）
