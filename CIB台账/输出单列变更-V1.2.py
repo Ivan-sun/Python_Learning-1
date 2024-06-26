@@ -42,6 +42,21 @@ def get_data_from_range(sheet, header_range, start_col_num, end_col_num):
     df.dropna(how='all', inplace=True)
     return df
 
+def get_unfinished_data(str1, df_OPEN):
+    # 1. 找出所有包含str1的列名
+    index_lst = [col for col in df_OPEN.columns if str1 in col]
+
+    # 2. 筛选出含有“未完成”的行
+    # 首先，构造一个布尔索引，用于标记哪些行在index_lst中的任一列包含“未完成”
+    mask = df_OPEN.apply(lambda row: any('未完成' in str(row[col]) for col in index_lst), axis=1)
+
+    # 应用筛选
+    df_OPEN_filtered = df_OPEN[mask]
+    sum_filter_OPEN = df_OPEN_filtered.shape[0]
+
+    return sum_filter_OPEN
+    
+
 # 提取合并单元格信息
 def extract_merge_info(sheet, start_row, start_col):
     """提取合并单元格的信息，并过滤掉Merge_Context为空的记录"""
@@ -69,7 +84,24 @@ def extract_merge_info(sheet, start_row, start_col):
         except Exception as e:
             print(f"处理列 {col_letter} 时发生错误: {e}")
     return data
-
+# 添加边框到B1:L4单元格
+def add_borders(sheet, start_row=1, start_col=2, end_row=4, end_col=12):
+    """
+    为指定单元格范围添加边框。
+    :param sheet: 工作表对象。
+    :param start_row: 起始行号。
+    :param start_col: 起始列号。
+    :param end_row: 结束行号。
+    :param end_col: 结束列号。
+    """
+    thin_border = Border(left=Side(style='thin'), 
+                        right=Side(style='thin'), 
+                        top=Side(style='thin'), 
+                        bottom=Side(style='thin'))
+    
+    for row in sheet.iter_rows(min_row=start_row, max_row=end_row, min_col=start_col, max_col=end_col):
+        for cell in row:
+            cell.border = thin_border
 def apply_format(cell, font_name='等线', font_size=14, font_color='FF0000', is_bold=True, border=True, align_center=True):
     """应用格式到单元格"""
     font = Font(name=font_name, color=font_color, bold=is_bold, size=font_size)
@@ -125,7 +157,7 @@ sheet_name = 'Sheet1'
 wb = xw.Book(file_path)
 sht1 = wb.sheets[sheet_name]
 book_name=sht1.range('A1').value
-sht1.range('O6').value="制造分部\nMF" #修改原表中的制造分部df1中标题防止出现重复列
+sht1.range('O6').value="计划\nPlan" #修改原表中的制造分部df1中标题防止出现重复列
 
 # 获取Dataframe1区域的数据
 df1_1 = get_data_from_range(sht1, 'A6:S6', 1, 19)
@@ -215,24 +247,46 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
             # 筛选条件：筛选出“列汇总”中含有“未完成”的行，并命名变量为 df_OPEN（表示该项目的未完成变更）
             df_OPEN = merged_df[merged_df['列汇总'].str.contains('未完成')]
             sum_OPEN = df_OPEN.shape[0]
+
+            # # 1. 找出所有包含“生产”的列名
+            # index_lst = [col for col in df_OPEN.columns if '生产' in col]
+
+            # # 2. 筛选出含有“未完成”的行
+            # # 首先，构造一个布尔索引，用于标记哪些行在index_lst中的任一列包含“未完成”
+            # mask = df_OPEN.apply(lambda row: any('未完成' in str(row[col]) for col in index_lst), axis=1)
+
+            # # 应用筛选
+            # df_OPEN_filtered = df_OPEN[mask]
+
+            sum_MF_OPEN_CN = get_unfinished_data('生产',df_OPEN)
+            sum_OT_OPEN_CN = get_unfinished_data('外协',df_OPEN)
+            sum_PL_OPEN_CN = get_unfinished_data('制造分部',df_OPEN)
+
+
         
             
-            df_OPEN.to_excel(writer, sheet_name=f"{merge_context}", startrow=2, startcol=0, index=False)
+            df_OPEN.to_excel(writer, sheet_name=f"{merge_context}", startrow=4, startcol=0, index=False)
 
 
             activesheet = writer.sheets[f"{merge_context}"]
 
             # 合并单元格
-            activesheet.merge_cells(start_row=1, start_column=1, end_row=1, end_column=activesheet.max_column)
+            activesheet.merge_cells(start_row=1, start_column=7, end_row=4, end_column=12)
 
             # 设置合并单元格的值
-            activesheet.cell(row=1, column=1).value = f"{merge_context}车辆变更状态"
-            activesheet.cell(row=2, column=2).value = "变更总数"
-            activesheet.cell(row=2, column=3).value = sum_CN
-            activesheet.cell(row=2, column=4).value = "未关闭"
-            activesheet.cell(row=2, column=5).value = sum_OPEN
-            activesheet.cell(row=2, column=6).value = "车间"
-            # activesheet.cell(row=2,column=6).value = sum_MF_OPEN_CN
+            activesheet.cell(row=1, column=7).value = f"{merge_context}车辆变更状态"
+            activesheet.cell(row=1, column=2).value = "变更总数"
+            activesheet.cell(row=1, column=3).value = sum_CN
+            activesheet.cell(row=1, column=4).value = "未关闭"
+            activesheet.cell(row=2, column=4).value = "车间"
+            activesheet.cell(row=3, column=4).value = "外协"
+            activesheet.cell(row=4, column=4).value = "计划"
+            
+                      
+            activesheet.cell(row=1, column=5).value = sum_OPEN
+            activesheet.cell(row=2,column=5).value = sum_MF_OPEN_CN
+            activesheet.cell(row=3, column=5).value = sum_OT_OPEN_CN
+            activesheet.cell(row=4, column=5).value = sum_PL_OPEN_CN
 
 
 
@@ -254,32 +308,39 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
             alignment = Alignment(horizontal="center", vertical="center")
 
             # 应用样式
-            activesheet.cell(row=1, column=1).fill = fill
-            activesheet.cell(row=1, column=1).font = font
-            activesheet.cell(row=1, column=1).alignment = alignment
+            activesheet.cell(row=1, column=7).fill = fill
+            activesheet.cell(row=1, column=7).font = font
+            activesheet.cell(row=1, column=7).alignment = alignment
 
             # 应用格式到指定的单元格
-            apply_format(activesheet.cell(row=1, column=1), font_size=16)  # 标题行可能需要更大字体
-            apply_format(activesheet.cell(row=2, column=2))
-            apply_format(activesheet.cell(row=2, column=3))
+            apply_format(activesheet.cell(row=1, column=7), font_size=20)  # 标题行可能需要更大字体
+            apply_format(activesheet.cell(row=1, column=2))
+            apply_format(activesheet.cell(row=1, column=3))
+            apply_format(activesheet.cell(row=1, column=4))
+            apply_format(activesheet.cell(row=1, column=5))
             apply_format(activesheet.cell(row=2, column=4))
             apply_format(activesheet.cell(row=2, column=5))
-            apply_format(activesheet.cell(row=2, column=6))
-            apply_format(activesheet.cell(row=2, column=7))
+            apply_format(activesheet.cell(row=3, column=4))
+            apply_format(activesheet.cell(row=3, column=5))
+            apply_format(activesheet.cell(row=4, column=4))
+            apply_format(activesheet.cell(row=3, column=5))
+            apply_format(activesheet.cell(row=4, column=5))
+
+            add_borders(activesheet)
 
 
 
             # 设置第3行为标题行，并开启自动换行
-            for col in activesheet.iter_cols(min_col=1, max_col=activesheet.max_column, min_row=3, max_row=3):
+            for col in activesheet.iter_cols(min_col=1, max_col=activesheet.max_column, min_row=5, max_row=5):
                 for cell in col:
                     cell.font = Font(name='等线', size=11, bold=True)
                     cell.alignment = Alignment(wrapText=True, vertical='center', horizontal='center')
                     # cell.alignment = openpyxl.styles.Alignment(wrap_text=True)  # 启用自动换行
 
-            # 调整第三行的行高
-            activesheet.row_dimensions[3].height = 36
+            # 调整第五行的行高
+            activesheet.row_dimensions[5].height = 36
             # 确定数据起始行和结束行，以及列范围
-            start_row = 3  # 数据起始行
+            start_row = 5  # 数据起始行
             end_row = activesheet.max_row  # 数据结束行（假设数据连续到最后一行）
             column_letters = 'D'  # 假设数据从D列开始
             end_column = get_column_letter(activesheet.max_column)  # 获取最大列字母
@@ -290,9 +351,7 @@ with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_p
             # 启用筛选
             activesheet.auto_filter.ref = data_range
 
-            
-
-            
+                      
             
             
             sheets_pbar.update(1)
