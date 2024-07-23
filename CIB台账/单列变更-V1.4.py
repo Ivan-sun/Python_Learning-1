@@ -73,9 +73,9 @@ def main():
             if car_NO not in i.value:
                 sht1.range(i).value = f"{car_NO}\n{sht1.range(i).value}"
 
-    wb1 = Workbook()
-    ws = wb1.active
-    ws.title = "Sheet1"  # 设置工作表的标题
+    # wb1 = Workbook()
+    # ws = wb1.active
+    # ws.title = "Sheet1"  # 设置工作表的标题
     with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_pbar:
 
         with pd.ExcelWriter(excel_file_name, engine='openpyxl',mode='w') as writer:
@@ -197,9 +197,7 @@ def main():
                 df_history = pd.DataFrame(flat_history)
 
                 # 将扁平化的数据转换为 DataFrame
-                df_history = pd.DataFrame(flat_history)
-                
-
+                df_history = pd.DataFrame(flat_history)          
 
                 df_history.to_excel(writer, sheet_name=f"{book_name}history", startrow=1, startcol=0, index=False)
     
@@ -209,6 +207,7 @@ def main():
     wb.save()
     wb.app.quit()
 
+
     # 对history.json的存储数据进行删除记录
     with open('history.json', 'r', encoding='utf-8') as file:
         data = json.load(file)
@@ -217,7 +216,7 @@ def main():
             # 处理历史记录,将date数据多余的数据进行删除
             data[f"{book_name}"][ts] = process_history(data[f"{book_name}history"][ts])
     
-    
+
 
     # 保存更新后的 Json 数据
     with open('history.json', 'w', encoding='utf-8') as file:
@@ -254,7 +253,6 @@ def process_history(history_data):
         del history_data[oldest_date]
         # print(f"删除了历史记录：{oldest_date}")    
     return history_data
-
 
 
 def format_worksheet(activesheet, merge_context, sum_CN, sum_OPEN, sum_MF_OPEN_CN, sum_OT_OPEN_CN, sum_PL_OPEN_CN):
