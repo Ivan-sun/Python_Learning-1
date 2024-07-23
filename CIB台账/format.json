@@ -1,0 +1,13 @@
+{
+    "Project_ID": {
+        "TS": {
+            "car": {
+                "current_date": {
+                    "Sum_MF_OPEN_CN": "sum_mf_open_cn",
+                    "Sum_MF_OPEN_OT": "sum_mf_open_OT",
+                    "Sum_MF_OPEN_PL": "sum_mf_open_PL"
+                }
+            }
+        }
+    }
+}

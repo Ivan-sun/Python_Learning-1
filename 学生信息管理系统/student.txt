@@ -4,3 +4,7 @@
 {'id': '1003', 'name': '照是', 'English': 89.0, 'Python': 34.6, 'Java': 123.0}
 {'id': '1005', 'name': '王周', 'English': 110.0, 'Python': 111.5, 'Java': 130.0}
 {'id': '1006', 'name': '李四', 'English': 129.0, 'Python': 110.0, 'Java': 98.9}
+{'id': '1008', 'name': 'srt', 'English': 122.0, 'Python': 121.0, 'Java': 87.0}
+{'id': '1320', 'name': 'suwq', 'English': 98.0, 'Python': 110.0, 'Java': 85.0}
+{'id': '1001', 'name': '120', 'English': 97.0, 'Python': 85.0, 'Java': 78.0}
+{'id': '1001', 'name': 'dg ', 'English': 123.0, 'Python': 87.0, 'Java': 84.0}
