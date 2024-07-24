@@ -309,7 +309,7 @@ def process_history(history_data):
 
 def format_worksheet(activesheet, merge_context, sum_CN, sum_OPEN, sum_MF_OPEN_CN, sum_OT_OPEN_CN, sum_PL_OPEN_CN):
     """
-    格式化工作表，包括合并单元格、设置单元格值、调整列宽、应用样式、设置标题行、调整行高等操作。
+    格式化TS工作表，包括合并单元格、设置单元格值、调整列宽、应用样式、设置标题行、调整行高等操作。
     
     参数:
         activesheet (Worksheet): 需要格式化的Excel工作表对象。
@@ -567,40 +567,7 @@ def extract_merge_info(sheet, start_row, start_col):
     
     return data
 
-# def build_project_car_dict(project_ID,df_TS_info, df_Car_info, train_consist ):
-#     """
-#     构建以project_ID为顶层键，TS为次级键，car列表为值的多级嵌套字典。
-#     :param df_TS_info: 包含列车段信息的DataFrame
-#     :param df_Car_info: 包含车厢信息的DataFrame
-#     :param train_consist: 列车段与车厢的比例
-#     :param project_ID: 项目ID
-#     :return: 构建好的多级嵌套字典
-#     """
-#     project_dict = {}  # 初始化多级嵌套字典
 
-#     # 遍历 df_TS_info 中的每一行
-#     for index, ts_row in df_TS_info.iterrows():
-#         ts_id = f"{ts_row['Merge_Context']}history"
-        
-#         # 计算车厢的起始和结束索引
-#         start_idx = int(index * train_consist)
-#         # 特殊处理：最后一个列车段可能不足train_consist的数量
-#         if index == len(df_TS_info) - 1:
-#             end_idx = len(df_Car_info)
-#         else:
-#             end_idx = min(int((index + 1) * train_consist), len(df_Car_info))
-        
-#         # 根据索引获取车厢列表
-#         cars_for_ts = df_Car_info.iloc[start_idx:end_idx]['Merge_Context'].tolist()
-
-#         # 如果project_ID尚未存在于字典中，创建一个新的字典
-#         if project_ID not in project_dict:
-#             project_dict[project_ID] = {}
-        
-#         # 将车厢列表添加到列车段字典下
-#         project_dict[project_ID][ts_id] = cars_for_ts
-    
-#     return project_dict
 
 def count_completed_uncompleted(df, prefix):
     """
