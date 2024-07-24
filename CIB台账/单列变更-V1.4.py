@@ -220,7 +220,9 @@ def main():
 
     # 保存更新后的 Json 数据
     with open('history.json', 'w', encoding='utf-8') as file:
-        json.dump(data, file, ensure_ascii=False, indent=4)      
+        json.dump(data, file, ensure_ascii=False, indent=4)
+        print("History data has been updated.")
+      
 
 
 

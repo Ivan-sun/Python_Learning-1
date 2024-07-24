@@ -16,6 +16,10 @@ from tqdm import tqdm
 from openpyxl.utils.cell import coordinate_from_string
 from openpyxl.utils import column_index_from_string
 from openpyxl import Workbook
+from openpyxl import load_workbook
+import matplotlib.pyplot as plt
+from openpyxl.utils.dataframe import dataframe_to_rows
+import xlsxwriter
 
 def select_excel_file():
     """选择Excel文件的对话框"""
@@ -41,17 +45,14 @@ current_datetime = datetime.now().strftime('%Y%m%d %H-%M')
 # 使用日期作为后缀创建新工作簿的名称
 excel_file_name = f"{book_name}_TS_{current_datetime}.xlsx"
 
-
-
 def main():
     # 假设 sht1 是一个有效的表格或工作表对象，book_name 是项目的名称
     df_TS_info, df_Car_info, train_consist, project_ID = load_or_calculate_data(sht1, book_name)
 
 
     # 调用函数,构造出车辆结构
-    nested_dict = build_project_car_dict(project_ID,df_TS_info, df_Car_info, train_consist)
+    # nested_dict = build_project_car_dict(project_ID,df_TS_info, df_Car_info, train_consist)
     
-
     total_sheets = len(df_TS_info)
 
     df1_1 = get_data_from_range(sht1, 'A6:S6', 1, 19)
@@ -74,22 +75,19 @@ def main():
             if car_NO not in i.value:
                 sht1.range(i).value = f"{car_NO}\n{sht1.range(i).value}"
 
-    wb1 = Workbook()
-    ws = wb1.active
-    ws.title = "Sheet1"  # 设置工作表的标题
+    # wb1 = Workbook()
+    # ws = wb1.active
+    # ws.title = "Sheet1"  # 设置工作表的标题
     with tqdm(total=total_sheets, desc="Writing Sheets:", unit="sheets") as sheets_pbar:
 
         with pd.ExcelWriter(excel_file_name, engine='openpyxl',mode='w') as writer:
             
-            # 初始化history_log字典
-            history_log = {}
             # 读取现有history.json文件中的数据
             try:
                 with open('history.json', 'r', encoding='utf-8') as file:
                     existing_data = json.load(file)
             except FileNotFoundError:
                 existing_data = {}
-
 
             #遍历每列车工作表，并进行写入
             for index, row in df_TS_info.iterrows():
@@ -99,7 +97,7 @@ def main():
                 header_range = f"{get_column_letter(start_col_num)}9:{get_column_letter(end_col_num)}9"
 
                 df_i = get_data_from_range(sht1, header_range, start_col_num, end_col_num)
-
+                
                 last_header = df_i.columns[-1]
                 if pd.isnull(last_header):  # 检查是否为空值
                     new_header = sht1.range(f"{get_column_letter(end_col_num)}7").value
@@ -114,37 +112,29 @@ def main():
                 columns_to_remove = [col for col in merged_df.columns if any(substring in col for substring in columns_to_drop)]
                 merged_df.drop(columns=columns_to_remove, inplace=True, errors='ignore')
                 
-                # print(merged_df.columns)
-                
+                               
                 #将["列汇总"]这种的空值行清除                
                 merged_df = merged_df.dropna(subset=["列汇总"])
 
                 # 计算不含标题的实际数据行数，并命名变量为 sum_CN（表示该项目所有的变更总数）
                 sum_CN = merged_df.shape[0]
                 
-
                 # 筛选条件：筛选出“列汇总”中含有“未完成”的行，并命名变量为 df_OPEN（表示该项目的未完成变更）
                 df_OPEN = merged_df[merged_df['列汇总'].str.contains('未完成')]
                 sum_OPEN = df_OPEN.shape[0]
-
-                # # 1. 找出所有包含“生产”的列名
-                # index_lst = [col for col in df_OPEN.columns if '生产' in col]
-
-                # # 2. 筛选出含有“未完成”的行
-                # # 首先，构造一个布尔索引，用于标记哪些行在index_lst中的任一列包含“未完成”
-                # mask = df_OPEN.apply(lambda row: any('未完成' in str(row[col]) for col in index_lst), axis=1)
-
-                # # 应用筛选
-                # df_OPEN_filtered = df_OPEN[mask]
 
                 sum_MF_OPEN_CN = get_unfinished_data('生产',df_OPEN)
                 sum_OT_OPEN_CN = get_unfinished_data('外协',df_OPEN)
                 sum_PL_OPEN_CN = get_unfinished_data('制造分部',df_OPEN)
 
+                # 假设merged_df是已经定义好的DataFrame
+                car_mf_log  = count_completed_uncompleted(df_i, '生产')
+                car_OT_log  = count_completed_uncompleted(df_i, '外协')
+                car_PROC_log = count_completed_uncompleted(df_i, '采购')
+
                 # 构建history_log字典
-                current_date = datetime.now().strftime('%Y%m%d')
-                book_name_history = f"{book_name}history"
-                
+                current_date = datetime.now().strftime('%Y%m%d%H%M')
+                book_name_history = f"{book_name}history"                    
                 Project_ID = book_name_history
                 TS = merge_context
 
@@ -154,115 +144,300 @@ def main():
                     existing_data[Project_ID][TS] = {}
                 if current_date not in existing_data[Project_ID][TS]:
                     existing_data[Project_ID][TS][current_date] = {}
-
-                existing_data[Project_ID][TS][current_date]["Sum_MF_OPEN_CN"] = sum_MF_OPEN_CN
-                existing_data[Project_ID][TS][current_date]["Sum_OT_OPEN_CN"] = sum_OT_OPEN_CN
-                existing_data[Project_ID][TS][current_date]["Sum_PL_OPEN_CN"] = sum_PL_OPEN_CN
+                
+                existing_data[Project_ID][TS][current_date]["car_MF_log"] = car_mf_log
+                existing_data[Project_ID][TS][current_date]["car_OT_log"] = car_OT_log
+                existing_data[Project_ID][TS][current_date]["car_PROC_log"] = car_PROC_log
+                # existing_data[Project_ID][TS][current_date]["Sum_MF_OPEN_CN"] = sum_MF_OPEN_CN
+                # existing_data[Project_ID][TS][current_date]["Sum_OT_OPEN_CN"] = sum_OT_OPEN_CN
+                # existing_data[Project_ID][TS][current_date]["Sum_PL_OPEN_CN"] = sum_PL_OPEN_CN
+                
                 
                 with open('history.json', 'w', encoding='utf-8') as file:
                     json.dump(existing_data, file, ensure_ascii=False, indent=4)
-                    print("History data has been updated.")
+                    # print("History data has been updated.")
 
+                
                 df_OPEN.to_excel(writer, sheet_name=f"{merge_context}", startrow=4, startcol=0, index=False)
                 activesheet = writer.sheets[f"{merge_context}"]
 
-                # 合并单元格
-                activesheet.merge_cells(start_row=1, start_column=7, end_row=4, end_column=12)
+                format_worksheet(activesheet, merge_context, sum_CN, sum_OPEN, sum_MF_OPEN_CN, sum_OT_OPEN_CN, sum_PL_OPEN_CN)
 
-                # 设置合并单元格的值
-                activesheet.cell(row=1, column=7).value = f"{merge_context}车辆变更状态"
-
-                activesheet.cell(row=1, column=2).value = "变更总数"
-                activesheet.cell(row=1, column=3).value = sum_CN
-                activesheet.cell(row=1, column=4).value = "未关闭"
-                activesheet.cell(row=2, column=4).value = "车间"
-                activesheet.cell(row=3, column=4).value = "外协"
-                activesheet.cell(row=4, column=4).value = "计划"
-                
-                        
-                activesheet.cell(row=1, column=5).value = sum_OPEN
-                activesheet.cell(row=2,column=5).value = sum_MF_OPEN_CN
-                activesheet.cell(row=3, column=5).value = sum_OT_OPEN_CN
-                activesheet.cell(row=4, column=5).value = sum_PL_OPEN_CN
-
-
-
-                #调整列宽
-                activesheet.column_dimensions['B'].width = 16
-                activesheet.column_dimensions['C'].width = 20
-
-
-
-                # 创建自定义的填充样式
-                fill = PatternFill(start_color="ADD8E6",  # 浅蓝色的RGB代码
-                                    end_color="ADD8E6",
-                                    fill_type="solid")
-                
-                # 设置字体为黑体
-                font = Font(name='黑体', bold=True, size=14)  # 注意：'SimHei'一般用于中文黑体，英文环境下可能需要其他字体名称
-                
-                # 设置单元格内容居中
-                alignment = Alignment(horizontal="center", vertical="center")
-
-                # 应用样式
-                activesheet.cell(row=1, column=7).fill = fill
-                activesheet.cell(row=1, column=7).font = font
-                activesheet.cell(row=1, column=7).alignment = alignment
-
-                # 应用格式到指定的单元格
-                apply_format(activesheet.cell(row=1, column=7), font_size=20)  # 标题行可能需要更大字体
-                apply_format(activesheet.cell(row=1, column=2))
-                apply_format(activesheet.cell(row=1, column=3))
-                apply_format(activesheet.cell(row=1, column=4))
-                apply_format(activesheet.cell(row=1, column=5))
-                apply_format(activesheet.cell(row=2, column=4))
-                apply_format(activesheet.cell(row=2, column=5))
-                apply_format(activesheet.cell(row=3, column=4))
-                apply_format(activesheet.cell(row=3, column=5))
-                apply_format(activesheet.cell(row=4, column=4))
-                apply_format(activesheet.cell(row=3, column=5))
-                apply_format(activesheet.cell(row=4, column=5))
-
-                add_borders(activesheet)
-
-
-
-                # 设置第3行为标题行，并开启自动换行
-                for col in activesheet.iter_cols(min_col=1, max_col=activesheet.max_column, min_row=5, max_row=5):
-                    for cell in col:
-                        cell.font = Font(name='等线', size=11, bold=True)
-                        cell.alignment = Alignment(wrapText=True, vertical='center', horizontal='center')
-                        # cell.alignment = openpyxl.styles.Alignment(wrap_text=True)  # 启用自动换行
-
-                # 调整第五行的行高
-                activesheet.row_dimensions[5].height = 36
-                # 确定数据起始行和结束行，以及列范围
-                start_row = 5  # 数据起始行
-                end_row = activesheet.max_row  # 数据结束行（假设数据连续到最后一行）
-                column_letters = 'D'  # 假设数据从D列开始
-                end_column = get_column_letter(activesheet.max_column)  # 获取最大列字母
-
-                # 设置筛选范围，从第三行开始到工作表的最后一行和列
-                data_range = f"{column_letters}{start_row}:{end_column}{end_row}"
-
-                # 启用筛选
-                activesheet.auto_filter.ref = data_range
-
-                      
-            
-            
                 sheets_pbar.update(1)
+             
     
-
-
-    print(f"数据已成功写入到 {excel_file_name}")
+    print(f"数据已成功写入到 {excel_file_name}\n接下来，更新history.json文件")
     # 关闭原工作簿，根据需要可取消注释
     wb.save()
     wb.app.quit()
 
+
+    # 对history.json的存储数据进行删除记录
+    with open('history.json', 'r', encoding='utf-8') as file:
+        data = json.load(file)
+        for ts, ts_data in data[f"{book_name}history"].items():
+
+            # 处理历史记录,将date数据多余的数据进行删除
+            data[f"{book_name}"][ts] = process_history(data[f"{book_name}history"][ts])
+    
+    # 保存更新后的 Json 数据
+    with open('history.json', 'w', encoding='utf-8') as file:
+        json.dump(data, file, ensure_ascii=False, indent=4)
+        print(f"history.json 文件更新成功.\n接下来，将历史数据更新到{excel_file_name}文件中")
+
+
+    #提取history.json文件中的数据，做扁平化处理
+    with open('history.json', 'r', encoding='utf-8') as file:
+        data = json.load(file)
+        history_data = data[f"{book_name}history"]
+        
+        # 创建一个空列表，用于存储扁平化的数据
+        flat_history = []
+
+        # 遍历 history 数据
+        for ts, ts_data in history_data.items():            
+            for date, date_data in ts_data.items():
+                for car_type, car_type_data in date_data.items():
+                    for car, car_data in car_type_data.items():
+                        
+                        completed_count = car_data["已完成数量"]
+                        remaining_count = car_data["未完成数量"]
+                        # car_dep=[line.split("\n") for line in car.strip().splitlines()]
+                        data1, data2 = car.split('\n')
+                        flat_history.append({
+                            "车号": data1,
+                            "部门": data2,
+                            "日期": date,
+                            "已完成后数量": completed_count,
+                            "未完成数量": remaining_count
+                        })
+
+        # 将扁平化的数据转换为 DataFrame
+        df_history = pd.DataFrame(flat_history)
+
+        # 将扁平化的数据转换为 DataFrame
+        df_history = pd.DataFrame(flat_history)          
+
+        # df_history.to_excel(writer, sheet_name=f"{book_name}history", startrow=1, startcol=0, index=False)
+    # # 使用openpyxl打开工作簿
+    # workbook = openpyxl.load_workbook(excel_file_name)
+
+    # # 创建一个新的工作表并确保它在最前面
+    # new_sheet_name = f"{book_name}history"
+
+    # worksheet = workbook.create_sheet(new_sheet_name)
+    # worksheet._write_only = True
+    
+    # # 将DataFrame的列名写入工作表
+    # worksheet.append(df_history.columns.tolist())
+
+    # # 将DataFrame的值以record形式写入工作表
+    # for row in df_history.to_records(index=False):
+    #     row_list = row.tolist()
+    #     worksheet.append(row_list)
+
+    # # 将新工作表移动到所有工作表的前面
+    # # 注意：'move_sheet'方法可能在某些版本的openpyxl中不可用
+    # # 可能需要使用其他方法来调整工作表顺序
+    # workbook._sheets.insert(0, workbook[new_sheet_name])
+
+    # # 保存工作簿
+    # workbook.save(excel_file_name)
+
+    append_df_to_excel(df_history, excel_file_name, sheet_name=f"history")
+
                 
 
+def append_df_to_excel(df, excel_file_name, sheet_name='New Sheet'):
+    """
+    将DataFrame追加到Excel工作簿的新工作表中，并确保新工作表位于最前面。
+    :param df: pandas.DataFrame，要写入的DataFrame
+    :param excel_file_name: str，Excel文件的路径
+    :param sheet_name: str，新工作表的名称
+    """
+    # 加载现有的Excel工作簿
+    workbook = load_workbook(excel_file_name)
 
+    # 创建一个新的工作表
+    if sheet_name not in workbook.sheetnames:
+        worksheet = workbook.create_sheet(sheet_name)
+    else:
+        worksheet = workbook[sheet_name]
+
+    # 使用xlsxwriter将DataFrame写入临时文件
+    temp_excel_file = 'temp_output.xlsx'
+    with pd.ExcelWriter(temp_excel_file, engine='xlsxwriter') as writer:
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+    # 使用openpyxl将新工作表的数据从临时文件复制到现有工作簿
+    temp_workbook = load_workbook(temp_excel_file)
+    temp_worksheet = temp_workbook[sheet_name]
+
+    # 清空现有工作簿中的新工作表
+    worksheet.delete_rows(1, worksheet.max_row)
+
+    # 复制数据
+    for row in temp_worksheet.iter_rows(values_only=True):
+        worksheet.append(row)
+
+    # 关闭临时工作簿
+    temp_workbook.close()
+
+    # 删除临时文件
+    import os
+    os.remove(temp_excel_file)
+
+    # 确保新工作表位于所有现有工作表之前
+    if sheet_name != workbook.sheetnames[0]:
+        # 删除工作表
+        del workbook[sheet_name]
+        # 重新插入工作表到最前面
+        workbook.create_sheet(sheet_name, 0)
+
+    # 保存工作簿
+    workbook.save(excel_file_name)
+    print(f"历史数据已更新到 {excel_file_name}")
+    return
+
+
+# def append_df_to_excel(df, excel_file_name, sheet_name='New Sheet'):
+#     """
+#     将DataFrame追加到Excel工作簿的新工作表中。
+#     :param df: pandas.DataFrame，要写入的DataFrame
+#     :param excel_file_name: str，Excel文件的路径
+#     :param sheet_name: str，新工作表的名称
+#     """
+#     # 加载现有的Excel工作簿
+#     workbook = load_workbook(excel_file_name)
+
+#     # 创建一个新的工作表
+#     if sheet_name not in workbook.sheetnames:
+#         worksheet = workbook.create_sheet(sheet_name)
+#     else:
+#         worksheet = workbook[sheet_name]
+
+#     # 将DataFrame的列名和值写入工作表
+#     for row in dataframe_to_rows(df, index=False, header=True):
+#         worksheet.append(row)
+
+#     # 确保新工作表位于所有现有工作表之前
+#     if sheet_name != workbook.sheetnames[0]:
+#         # 直接操作_sheets属性
+#         sheets = workbook._sheets
+#         new_sheet = workbook[sheet_name]
+#         sheets.remove(new_sheet)
+#         sheets.insert(0, new_sheet)
+
+#     # 保存工作簿
+#     workbook.save(excel_file_name)
+#     print(f"历史数据已更新到 {excel_file_name}")
+#     return
+
+def flatten_json(nested_json, prefix=''):
+    out = {}
+    for key, value in nested_json.items():
+        if isinstance(value, dict):
+            out.update(flatten_json(value, prefix + key + '_'))
+        elif isinstance(value, list):
+            for i, item in enumerate(value):
+                if isinstance(item, dict):
+                    out.update(flatten_json(item, prefix + key + '_' + str(i) + '_'))
+                else:
+                    out[prefix + key + '_' + str(i)] = item
+        else:
+            out[prefix + key] = value
+    return out
+
+def process_history(history_data):
+   # 获取历史记录的键（即日期）
+    dates = sorted(history_data.keys())
+
+    while len(dates) > 30:
+        oldest_date = dates.pop(0)
+        del history_data[oldest_date]
+        # print(f"删除了历史记录：{oldest_date}")    
+    return history_data
+
+
+def format_worksheet(activesheet, merge_context, sum_CN, sum_OPEN, sum_MF_OPEN_CN, sum_OT_OPEN_CN, sum_PL_OPEN_CN):
+    """
+    格式化工作表，包括合并单元格、设置单元格值、调整列宽、应用样式、设置标题行、调整行高等操作。
+    
+    参数:
+        activesheet (Worksheet): 需要格式化的Excel工作表对象。
+        merge_context (str): 合并单元格后显示的文本前缀。
+        sum_CN (int): 变更总数。
+        sum_OPEN (int): 未关闭的变更数量总和。
+        sum_MF_OPEN_CN (int): 车间未关闭的变更数量。
+        sum_OT_OPEN_CN (int): 外协未关闭的变更数量。
+        sum_PL_OPEN_CN (int): 计划未关闭的变更数量。
+        
+    返回:
+        None: 直接修改传入的工作表对象。
+    """
+
+    # 合并单元格
+    activesheet.merge_cells(start_row=1, start_column=7, end_row=4, end_column=12)
+
+    # 设置合并单元格的值
+    activesheet.cell(row=1, column=7).value = f"{merge_context}车辆变更状态"
+
+    # 设置其他单元格的值
+    activesheet.cell(row=1, column=2).value = "变更总数"
+    activesheet.cell(row=1, column=3).value = sum_CN
+    activesheet.cell(row=1, column=4).value = "未关闭"
+    activesheet.cell(row=2, column=4).value = "车间"
+    activesheet.cell(row=3, column=4).value = "外协"
+    activesheet.cell(row=4, column=4).value = "计划"
+    activesheet.cell(row=1, column=5).value = sum_OPEN
+    activesheet.cell(row=2, column=5).value = sum_MF_OPEN_CN
+    activesheet.cell(row=3, column=5).value = sum_OT_OPEN_CN
+    activesheet.cell(row=4, column=5).value = sum_PL_OPEN_CN
+
+    # 调整列宽
+    activesheet.column_dimensions['B'].width = 16
+    activesheet.column_dimensions['C'].width = 20
+
+    # 创建自定义的填充样式
+    fill = PatternFill(start_color="ADD8E6", end_color="ADD8E6", fill_type="solid")
+
+    # 设置字体为黑体
+    font = Font(name='黑体', bold=True, size=14)
+
+    # 设置单元格内容居中
+    alignment = Alignment(horizontal="center", vertical="center")
+
+    # 应用样式
+    activesheet.cell(row=1, column=7).fill = fill
+    activesheet.cell(row=1, column=7).font = font
+    activesheet.cell(row=1, column=7).alignment = alignment
+
+    # 应用格式到指定的单元格
+    apply_format(activesheet.cell(row=1, column=7), font_size=20)
+    for row in range(1, 5):
+        for col in range(2, 6):
+            apply_format(activesheet.cell(row=row, column=col))
+
+    add_borders(activesheet)
+
+    # 设置第3行为标题行，并开启自动换行
+    for col in activesheet.iter_cols(min_col=1, max_col=activesheet.max_column, min_row=5, max_row=5):
+        for cell in col:
+            cell.font = Font(name='等线', size=11, bold=True)
+            cell.alignment = Alignment(wrapText=True, vertical='center', horizontal='center')
+
+    # 调整第五行的行高
+    activesheet.row_dimensions[5].height = 36
+
+    # 设置筛选范围
+    start_row = 5
+    end_row = activesheet.max_row
+    column_letters = 'D'
+    end_column = get_column_letter(activesheet.max_column)
+    data_range = f"{column_letters}{start_row}:{end_column}{end_row}"
+
+    # 启用筛选
+    activesheet.auto_filter.ref = data_range
 
 def load_or_calculate_data(sht1, book_name):
     # 定义历史数据文件路径
@@ -444,42 +619,68 @@ def extract_merge_info(sheet, start_row, start_col):
     
     return data
 
-def build_project_car_dict(project_ID,df_TS_info, df_Car_info, train_consist ):
-    """
-    构建以project_ID为顶层键，TS为次级键，car列表为值的多级嵌套字典。
-    :param df_TS_info: 包含列车段信息的DataFrame
-    :param df_Car_info: 包含车厢信息的DataFrame
-    :param train_consist: 列车段与车厢的比例
-    :param project_ID: 项目ID
-    :return: 构建好的多级嵌套字典
-    """
-    project_dict = {}  # 初始化多级嵌套字典
+# def build_project_car_dict(project_ID,df_TS_info, df_Car_info, train_consist ):
+#     """
+#     构建以project_ID为顶层键，TS为次级键，car列表为值的多级嵌套字典。
+#     :param df_TS_info: 包含列车段信息的DataFrame
+#     :param df_Car_info: 包含车厢信息的DataFrame
+#     :param train_consist: 列车段与车厢的比例
+#     :param project_ID: 项目ID
+#     :return: 构建好的多级嵌套字典
+#     """
+#     project_dict = {}  # 初始化多级嵌套字典
 
-    # 遍历 df_TS_info 中的每一行
-    for index, ts_row in df_TS_info.iterrows():
-        ts_id = ts_row['Merge_Context']
+#     # 遍历 df_TS_info 中的每一行
+#     for index, ts_row in df_TS_info.iterrows():
+#         ts_id = f"{ts_row['Merge_Context']}history"
         
-        # 计算车厢的起始和结束索引
-        start_idx = int(index * train_consist)
-        # 特殊处理：最后一个列车段可能不足train_consist的数量
-        if index == len(df_TS_info) - 1:
-            end_idx = len(df_Car_info)
-        else:
-            end_idx = min(int((index + 1) * train_consist), len(df_Car_info))
+#         # 计算车厢的起始和结束索引
+#         start_idx = int(index * train_consist)
+#         # 特殊处理：最后一个列车段可能不足train_consist的数量
+#         if index == len(df_TS_info) - 1:
+#             end_idx = len(df_Car_info)
+#         else:
+#             end_idx = min(int((index + 1) * train_consist), len(df_Car_info))
         
-        # 根据索引获取车厢列表
-        cars_for_ts = df_Car_info.iloc[start_idx:end_idx]['Merge_Context'].tolist()
+#         # 根据索引获取车厢列表
+#         cars_for_ts = df_Car_info.iloc[start_idx:end_idx]['Merge_Context'].tolist()
 
-        # 如果project_ID尚未存在于字典中，创建一个新的字典
-        if project_ID not in project_dict:
-            project_dict[project_ID] = {}
+#         # 如果project_ID尚未存在于字典中，创建一个新的字典
+#         if project_ID not in project_dict:
+#             project_dict[project_ID] = {}
         
-        # 将车厢列表添加到列车段字典下
-        project_dict[project_ID][ts_id] = cars_for_ts
+#         # 将车厢列表添加到列车段字典下
+#         project_dict[project_ID][ts_id] = cars_for_ts
     
-    return project_dict
+#     return project_dict
 
+def count_completed_uncompleted(df, prefix):
+    """
+    统计DataFrame中特定前缀列的已完成和未完成数量。
+    
+    :param df: 要处理的DataFrame。
+    :param prefix: 列名前缀，用于筛选列。
+    :return: 包含每列的已完成和未完成数量的字典。
+    """
+    mf_col_list = [col for col in df.columns if prefix in col]
+    
+    car_mf_log = {}
+    #遍历mf_col_list，使用布尔索引计算已完成的数量，即排除含有"未完成"字符串和等于"/"的项
+    for col in mf_col_list:
+        completed_mask = ~(df[col].str.contains('未完成')) & (df[col] != '/')
+        completed_count = int(completed_mask.sum())
 
+        # 使用布尔索引计算未完成的数量，即包含"未完成"字符串的项
+        unfinished_mask = df[col].str.contains('未完成')
+        unfinished_count = int(unfinished_mask.sum())
+        # 将当前列的已完成和未完成数量存入字典
+        car_mf_log[col] = {
+            '已完成数量': completed_count,
+            '未完成数量': unfinished_count
+                            }
+        
+        
+    return car_mf_log
 
 
 
