@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
+import numpy as np
 import re
 import time
 from datetime import datetime
-# import numpy as np
-# import tkinter as tk
 from tkinter import filedialog
 import xlwings as xw
 # import openpyxl
@@ -43,12 +42,14 @@ note ="""
     
     6.程序运行完成后将产生一个history.json文件，保存了每个车的变更信息，请勿删除或者修改文件，确保该文件与本程序放在同一文件夹下
 
-    7.本程序为V1.5版本，后续版本会更新，敬请关注
+    7.程序运行完成后会产生一个图示化照片，显示最近两天的每个车每个部门完成/未完成的数量
+
+    8.本程序为V1.6版本，后续版本会更新，敬请关注
 
     ┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄  
     """
 print (note)
-# ss = input("====确认后，按回车继续====\n")
+ss = input("====确认后，按回车继续====\n")
 
 print("====请选择需要处理的CIB台账====")
 
@@ -56,6 +57,7 @@ file_path = select_excel_file()
 if not file_path:
     print("没有选择文件。")
 sheet_name = 'Sheet1'
+
 
 # 打开Excel文件并激活工作表
 wb = xw.Book(file_path)
@@ -71,8 +73,8 @@ current_datetime = datetime.now().strftime('%Y%m%d %H-%M')
 # 使用日期作为后缀创建新工作簿的名称
 excel_file_name = f"{book_name}_TS_{current_datetime}.xlsx"
 # 设置matplotlib字体以支持中文
-plt.rcParams['font.sans-serif'] = ['Microsoft YaHei']  # 以微软雅黑为例
-plt.rcParams['axes.unicode_minus'] = False  # 正常显示负号
+plt.rcParams['font.sans-serif'] = ['SimHei']  # 使用微软雅黑字体支持中文
+plt.rcParams['axes.unicode_minus'] = False  # 正确显示负号
 
 def main():
     # 假设 sht1 是一个有效的表格或工作表对象，book_name 是项目的名称
@@ -240,14 +242,17 @@ def main():
         json.dump(data, file, ensure_ascii=False, indent=4)
         print(f"history.json 文件更新成功.\n接下来，将历史数据更新到{excel_file_name}文件中")
      
-    append_df_to_excel(df_history, excel_file_name, sheet_name=f"history")          
+    append_df_to_excel(df_history, excel_file_name, sheet_name=f"history")
+    print(f"数据已成功写入到 {excel_file_name}\n接下来，将创建可视化图")          
 
-    # 将日期列转换为日期时间格式
-    df_history['日期'] = pd.to_datetime(df_history['日期'], format="%Y年%m月%d日", dayfirst=True)
+    df_history['日期'] = pd.to_datetime(df_history['日期'], format="%Y年%m月%d日", errors='coerce')
+    df_povit = process_data(df_history)
+    plot_data(df_povit, train_consist, colors=[ 'lightcyan', 'thistle',
+                                                 'palegoldenrod', 'slategrey', 'thistle', 'plum',
+                                                'lightseagreen', 'skyblue', 'palevioletred', 'lightsteelblue',
+                                                'lightgrey','lightblue','lightsalmon', 'lightcoral', 'lightgreen'])    
 
-    
-    # 调用函数绘制图表
-    # plot_completion_status(df_history)
+
 
     
 
@@ -257,7 +262,7 @@ def main():
     time.sleep(5)  # 暂停5秒
     
 
-    # input("按任意键退出程序...")
+    input("按回车键退出程序...")
     # 程序退出
     exit(0)  # 可选，正常退出程序，0表示成功
 
@@ -464,7 +469,6 @@ def load_or_calculate_data(sht1, book_name):
     return df_TS_info, df_Car_info, train_consist, book_name
 
 
-
 def get_merge_info(cell):
     """获取合并单元格的信息"""
     if cell.api.MergeCells:
@@ -542,12 +546,7 @@ def apply_format(cell, font_name='等线', font_size=14, font_color='FF0000', is
         cell.alignment = alignment
 
 
-
-
-
 # 提取合并单元格信息
-
-
 def extract_merge_info(sheet, start_row, start_col):
     """提取合并单元格的信息，并过滤掉Merge_Context为空的记录"""
     max_column = sheet.used_range.last_cell.column
@@ -613,7 +612,120 @@ def count_completed_uncompleted(df, prefix):
                 
     return car_mf_log
 
+def process_data(df):
+    try:
+        # 使用pivot_table重塑数据
+        df_pivot = df.pivot_table(
+            index=['车号', '日期'],
+            columns='部门',
+            values=['已完成数量', '未完成数量'],
+            aggfunc='sum'
+        )
 
+        # 将MultiIndex的第二层堆叠为长格式数据，使用新的stack()行为
+        df_stacked = df_pivot.stack(future_stack=True).reset_index()
+        
+        # 将堆叠后的索引转换为列，保留所有索引级别
+        df_stacked.columns = ['车号', '日期', '部门', '已完成数量', '未完成数量']
+
+        # 检查'日期'列的数据类型，如果需要则转换为datetime类型
+        if not np.issubdtype(df_stacked['日期'].dtype, np.datetime64):
+            df_stacked['日期'] = pd.to_datetime(df_stacked['日期'], errors='coerce')
+    except Exception as e:
+        print(f"数据处理出错：{e}")
+        raise
+
+    return df_stacked
+
+def plot_data(df_stacked, train_consist, colors):
+    car_number_to_index = {car_number: int(index) for index, car_number in enumerate(df_stacked['车号'].unique())}
+    df_stacked['车号_index'] = df_stacked['车号'].map(car_number_to_index)
+    if train_consist<3:
+        t=6
+    else:
+        t=train_consist
+
+    unique_dates = df_stacked['日期'].unique()
+
+    if len(unique_dates) > 1:
+        latest_date = unique_dates[-1]
+        previous_date = unique_dates[-2]
+    else:
+        # 处理只有一个日期的情况
+        latest_date = unique_dates[0]
+        previous_date = latest_date  # 或者设置为None，或者使用其他逻辑
+        print(f"只有一个日期的历史数据，使用[{latest_date.strftime('%Y%m%d')}]作为最新日期")
+
+    date_colors = {
+        latest_date: 'orchid',  
+        previous_date: 'lightgrey' 
+    }
+
+    num_cars = len(car_number_to_index)
+    num_subplots = int(np.ceil(num_cars / t))
+    fig, axs = plt.subplots(nrows=num_subplots, figsize=(10, 3*num_subplots))
+
+    if not isinstance(axs, np.ndarray):
+        axs = [axs]
+
+    for i, ax in enumerate(axs):
+        start_index = int(i * t)
+        end_index = int(min((i + 1) * t, num_cars))
+        subset_data = df_stacked[df_stacked['车号_index'].between(start_index, end_index-1)]
+        if  len(unique_dates) > 1:
+            ax.set_title(f"日期：{previous_date.strftime('%Y%m%d')}[浅灰色]和{latest_date.strftime('%Y%m%d')}[淡紫色]  车号 :{list(car_number_to_index.keys())[start_index]} -- {list(car_number_to_index.keys())[end_index-1]}")
+        else:
+            ax.set_title(f"日期：{latest_date.strftime('%Y%m%d')}[浅灰色]  车号 :{list(car_number_to_index.keys())[start_index]} -- {list(car_number_to_index.keys())[end_index-1]}")
+        ax.set_ylabel('数量')
+
+        x_positions = np.arange(start_index, end_index)
+
+        for date, x_pos in zip([previous_date, latest_date], [x_positions - 0.2, x_positions + 0.2]):
+            day_data = subset_data[subset_data['日期'] == date]
+
+            bottom_values = np.zeros(len(x_pos))
+
+            for department in df_stacked['部门'].unique():
+                dept_data = day_data[day_data['部门'] == department]
+                completed_counts = dept_data['已完成数量'].values
+                uncompleted_counts = dept_data['未完成数量'].values
+                total_counts = completed_counts + uncompleted_counts
+
+                color_index = list(df_stacked['部门'].unique()).index(department)
+                dept_color = colors[color_index]
+
+                bars = ax.bar(x_pos, total_counts, bottom=bottom_values, width=0.4, align='center',
+                              color=dept_color, edgecolor=date_colors[date], label=f"{department} ({date.strftime('%Y%m%d')})")
+
+                bottom_values += total_counts
+
+                for bar, cc, uc in zip(bars, completed_counts, uncompleted_counts):
+                    height = bar.get_height()
+                    center_y = bar.get_y() + height / 2
+                    ax.annotate(f'{cc}/{uc}', xy=(bar.get_x() + bar.get_width() / 2, center_y),
+                                xytext=(0, 0), textcoords="offset points",
+                                ha='center', va='center')
+
+        ax.set_xticks(x_positions)
+        ax.set_xticklabels(list(car_number_to_index.keys())[start_index:end_index], rotation=90)
+
+        handles, labels = ax.get_legend_handles_labels()
+        unique_labels = set()
+        good_handles = []
+        good_labels = []
+
+        for handle, label in zip(handles, labels):
+            department = label.split(' ')[0]
+            if department not in unique_labels:
+                good_handles.append(handle)
+                good_labels.append(department)
+                unique_labels.add(department)
+
+        ax.legend(good_handles, good_labels, loc='upper center', bbox_to_anchor=(0.5, 1.03),
+                  fancybox=True, shadow=True, ncol=len(good_labels))
+    plt.tight_layout(rect=[0, 0, 1, 1])
+    plt.savefig(f"{book_name}{datetime.now().strftime('%Y%m%d%H%M%S')}_stacked_bar_charts.png", dpi=100)
+    print("图片已保存")
 
 
 if __name__ =='__main__':
